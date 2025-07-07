@@ -2,8 +2,6 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
 import {z} from "zod";
 import axios from "axios";
-import {RequestHandlerExtra} from "@modelcontextprotocol/sdk/shared/protocol.js";
-import {ServerNotification, ServerRequest} from "@modelcontextprotocol/sdk/types.js";
 
 if (!process.env.GOOGLE_MAPS_API_KEY) {
     throw new Error("Missing GOOGLE_MAPS_API_KEY environment variable");
