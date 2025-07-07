@@ -13,3 +13,22 @@ This project is a simple **MCP (Model Context Protocol) server** that integrates
 - Supports **travel mode**, **routing preference**, **units**, and alternative routes
 
 ---
+
+### Example mcp.json to use it in LM Studio or Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "google-routes-api": {
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "[path to the local repo]/src/server.ts"
+      ],
+      "env": {
+        "GOOGLE_MAPS_API_KEY": "[your api key]"
+      }
+    }
+  }
+}
+```
