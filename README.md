@@ -2,8 +2,6 @@
 
 This project is a simple **MCP (Model Context Protocol) server** that integrates with the **Google Maps Geocoding API** and **Routes API** to compute directions between two addresses.
 
----
-
 ## Features
 
 - MCP server with [Model Context Protocol](https://modelcontextprotocol.dev/)
@@ -11,8 +9,6 @@ This project is a simple **MCP (Model Context Protocol) server** that integrates
 - Uses **Google Geocoding API** to get coordinates
 - Computes routes with **Google Routes API**
 - Supports **travel mode**, **routing preference**, **units**, and alternative routes
-
----
 
 ### Example mcp.json to use it in LM Studio or Claude Desktop
 
