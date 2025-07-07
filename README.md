@@ -1,6 +1,6 @@
 # Google Routes API MCP Server (with Geocoding)
 
-This project is a simple **MCP (Model Context Protocol) server** that integrates with the **Google Maps Geocoding API** and **Routes API** to compute directions between two addresses.
+This project is a simple MCP (Model Context Protocol) server that integrates with the **Google Maps Geocoding API** and **Routes API** to compute directions between two addresses.
 
 ## Features
 
