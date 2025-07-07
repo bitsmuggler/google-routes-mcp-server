@@ -5,21 +5,23 @@ import axios from "axios";
 import {RequestHandlerExtra} from "@modelcontextprotocol/sdk/shared/protocol.js";
 import {ServerNotification, ServerRequest} from "@modelcontextprotocol/sdk/types.js";
 
-// Replace with your Google Maps API key
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "YOUR_API_KEY";
+if (!process.env.GOOGLE_MAPS_API_KEY) {
+    throw new Error("Missing GOOGLE_MAPS_API_KEY environment variable");
+}
 
-// Helper: geocode an address to lat/lng
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
 async function geocodeAddress(address: string) {
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json`;
     const response = await axios.get(geocodeUrl, {
         params: {
             address,
-            key: GOOGLE_MAPS_API_KEY,
+            key: GOOGLE_MAPS_API_KEY
         },
+        timeout: 5000
     });
 
     if (response.data.status !== "OK" || !response.data.results?.length) {
-        console.log(response.data.status);
         throw new Error(`Failed to geocode address "${address}": ${response.data.status}`);
     }
 
@@ -32,29 +34,61 @@ async function geocodeAddress(address: string) {
 
 const server = new McpServer({
     name: "Google Routes MCP Server (with Geocoding)",
-    version: "1.1.0",
+    version: "0.1.0",
 });
 
-// Tool: computeRouteWithAddresses
 server.registerTool(
     "computeRouteWithAddresses",
     {
         title: "Compute Route With Addresses",
         description: "Compute a route using origin and destination addresses",
         inputSchema: {
-            originAddress: z.string(),
-            destinationAddress: z.string(),
+            originAddress: z.string().min(1, "Origin address is required").describe("The address of the origin location"),
+            destinationAddress: z.string().min(1, "Destination address is required").describe("The address of the destination location"),
+            travel: z.object({
+                travelMode: z.enum(['DRIVE', 'BICYCLE', 'WALK', 'TWO_WHEELER', 'TRANSIT'])
+                    .default('DRIVE')
+                    .describe("The travel mode for the route"),
+                routingPreference: z.enum([
+                    'TRAFFIC_UNAWARE',
+                    'TRAFFIC_AWARE',
+                    'TRAFFIC_AWARE_OPTIMAL',
+                ])
+                    .optional()
+                    .describe("The routing preference for the route"),
+            }).refine(
+                (data) => {
+                    return !(data.travelMode === 'TRANSIT' && data.routingPreference !== undefined);
+                },
+                {
+                    message: "routingPreference cannot be set when travelMode is TRANSIT",
+                    path: ['routingPreference'],
+                }
+            ),
+            units: z.enum(['METRIC', 'IMPERIAL'])
+                .default('METRIC')
+                .describe("The units for the route"),
+            computeAlternativeRoutes: z.boolean()
+                .default(false)
+                .describe("Whether to compute alternative routes"),
         },
     },
     async (args: {
         originAddress: string,
-        destinationAddress: string
-    }, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
-        // Geocode origin and destination
+        destinationAddress: string,
+        travel: {
+            travelMode: 'DRIVE' | 'BICYCLE' | 'WALK' | 'TWO_WHEELER' | 'TRANSIT',
+            routingPreference?: 'TRAFFIC_UNAWARE' | 'TRAFFIC_AWARE' | 'TRAFFIC_AWARE_OPTIMAL',
+        }
+        units?: 'METRIC' | 'IMPERIAL',
+        computeAlternativeRoutes?: boolean,
+    }) => {
         const origin = await geocodeAddress(args.originAddress);
-        console.log('Origin geocoded:', origin);
         const destination = await geocodeAddress(args.destinationAddress);
-        console.log('Destination geocoded:', destination);
+        const travelMode = args.travel.travelMode || "DRIVE";
+        const routingPreference = args.travel.routingPreference;
+        const units = args.units || "METRIC";
+        const computeAlternativeRoutes = args.computeAlternativeRoutes || false;
 
         const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
 
@@ -75,10 +109,10 @@ server.registerTool(
                     },
                 },
             },
-            travelMode: "DRIVE",
-            routingPreference: "TRAFFIC_AWARE",
-            computeAlternativeRoutes: false,
-            units: "METRIC",
+            travelMode,
+            routingPreference,
+            computeAlternativeRoutes,
+            units,
         };
 
         try {
@@ -89,22 +123,53 @@ server.registerTool(
                     headers: {
                         "Content-Type": "application/json",
                         "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-                        "X-Goog-FieldMask": "*",
+                        "X-Goog-FieldMask": "routes.routeLabels,routes.legs,routes.distanceMeters,routes.duration"
                     },
                 }
             );
+
+            const rawRoutes = response.data.routes || [];
+            const simplifiedRoutes = rawRoutes.map((route: any) => ({
+                labels: route.routeLabels,
+                distanceMeters: route.distanceMeters,
+                duration: route.duration,
+                legs: route.legs?.map((leg: any) => ({
+                    startAddress: leg.startLocation,
+                    endAddress: leg.endLocation,
+                    distanceMeters: leg.distanceMeters,
+                    duration: leg.duration,
+                    steps: leg.steps?.map((step: any) => ({
+                        distanceMeters: step.distanceMeters,
+                        duration: step.duration,
+                        navigationInstruction: step.navigationInstruction,
+                    })),
+                })),
+            }));
+
+            const result = {
+                routes: simplifiedRoutes,
+                metadata: {
+                    origin: args.originAddress,
+                    destination: args.destinationAddress,
+                    travelMode,
+                    routingPreference,
+                    units,
+                    alternativeRoutes: computeAlternativeRoutes,
+                },
+                summary: `Calculated ${simplifiedRoutes.length} route(s) from "${args.originAddress}" to "${args.destinationAddress}".`,
+            };
 
             return {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(response.data),
+                        text: `ROUTE_RESULT\n` + JSON.stringify(result, null, 2),
                     },
                 ],
             };
+
         } catch (error: any) {
-            console.error("Error calling Google Routes API:", error.response?.data || error.message);
-            throw new Error(`Failed to compute route: ${error.message}`);
+            throw new Error(`Failed to compute route: ${error.response?.status} ${JSON.stringify(error.response?.data)}`);
         }
     }
 );
