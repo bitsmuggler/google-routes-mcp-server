@@ -6,11 +6,11 @@ This project is a simple **MCP (Model Context Protocol) server** that integrates
 
 - MCP server with [Model Context Protocol](https://modelcontextprotocol.dev/)
 - Accepts **origin** and **destination addresses**
-- Uses **Google Geocoding API** to get coordinates
-- Computes routes with **Google Routes API**
-- Supports **travel mode**, **routing preference**, **units**, and alternative routes
+- Uses **[Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview?hl=de)** to get coordinates
+- Computes routes with **[Google Routes API](https://developers.google.com/maps/documentation/routes?hl=de)**
+- Supports travel mode, routing preference, units, and alternative routes
 
-### Example mcp.json to use it in LM Studio or Claude Desktop
+## Example mcp.json to use it in LM Studio or Claude Desktop
 
 ```json
 {
