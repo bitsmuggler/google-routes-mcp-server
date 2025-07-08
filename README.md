@@ -2,6 +2,8 @@
 
 This project is a simple MCP (Model Context Protocol) server that integrates with the **Google Maps Geocoding API** and **Routes API** to compute directions between two addresses.
 
+You can find all the details and the story behind it in my blog post: [Building My First MCP Server: A Practical Guide with Google Routes API](https://www.workingsoftware.dev/building-my-first-mcp-server-a-practical-guide-with-google-routes-api/)
+
 ## Features
 
 - MCP server with [Model Context Protocol](https://modelcontextprotocol.dev/)
