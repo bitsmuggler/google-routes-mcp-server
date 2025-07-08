@@ -121,7 +121,7 @@ server.registerTool(
                     headers: {
                         "Content-Type": "application/json",
                         "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-                        "X-Goog-FieldMask": "routes.routeLabels,routes.legs,routes.distanceMeters,routes.duration"
+                        "X-Goog-FieldMask": "routes.*"
                     },
                 }
             );
